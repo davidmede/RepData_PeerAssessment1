@@ -7,19 +7,123 @@ output:
 
 
 ## Loading and preprocessing the data
-
-
+```{r, echo=TRUE}
+activity<-read.csv("activity.csv")
+install.packages("lubridate")
+library(lubridate)
+activity$date<-ymd(activity$date)
+activity$interval<-as.factor(activity$interval)
+```
 
 ## What is mean total number of steps taken per day?
 
+*Histogram of the total number of steps taken each day*
 
+```{r, echo=TRUE}
+library(dplyr)
+activity<-group_by(activity,date)
+activity_group<-summarise(activity, sum(steps, na.rm = T))
+hist(activity_group$`sum(steps, na.rm = T)`,breaks = 20)
+```
+
+*Mean and median number of steps taken each day*
+
+```{r,echo=TRUE, results="hide"}
+mean_activity<-mean(activity_group$`sum(steps)`,na.rm = TRUE )
+median_activity<-median(activity_group$`sum(steps)`,na.rm = TRUE)
+```
+
+The mean was `mean_activity` and the median was `median_activity`
 
 ## What is the average daily activity pattern?
 
+*Time series plot of the 5-minute interval and the average number of steps taken, averaged across all days*
 
+```{r,echo=TRUE}
+activity_2<-group_by(activity,interval)
+activity_group_2<-summarise(activity_2, average=mean(steps, na.rm = T))
+activity_group_2$interval<-as.character(activity_group_2$interval)
+activity_group_2$interval<-as.numeric(activity_group_2$interval)
+
+plot(activity_group_2$interval,activity_group_2$average, type="l")
+```
+
+*The 5-minute interval that, on average, contains the maximum number of steps*
+
+```{r, echo=TRUE}
+activity_group_2[which.max(activity_group_2$average),]
+```
 
 ## Imputing missing values
 
+*Number of missing values in the dataset*
 
+```{r, echo=TRUE}
+number_na<-is.na(activity$steps)
+number_na_2<-sum(number_na)
+```
+
+The number of NA's is `number_na_2`.
+
+*Strategy for filling in all of the missing values in the dataset*
+
+```{r, echo=TRUE}
+for (i in 1:nrow(activity)) {
+        if (is.na(activity$steps[i])) {
+        activity$steps[i] <- mean
+        (activity$steps[activity$interval==activity$interval[i]], na.rm = TRUE)
+        }
+}
+```
+
+In this case, it was used the mean for each 5-minute interval.
+
+*Histogram of the total number of steps taken each day*
+
+```{r, echo=TRUE}
+activity<-group_by(activity,date)
+activity_group_3<-summarise(activity, sum(steps))
+hist(activity_group_3$`sum(steps, na.rm = T)`,breaks = 20)
+```
+
+*Mean and median number of steps taken each day*
+
+```{r, echo=TRUE}
+mean_activity_2<-mean(activity_group_3$`sum(steps)`)
+median_activity_2<-median(activity_group_3$`sum(steps)`)
+```
+
+The mean was `mean_activity_2` and the median was `median_activity_2`
+
+### Do these values differ from the estimates from the first part of the assignment?
+
+
+
+
+
+### What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+
+
+*Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends*
+
+```{r, echo=TRUE}
+activity<-mutate(activity, weekday=weekdays(date))
+weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+weekend<-c("Saturday","Sunday")
+for (i in 1:nrow(activity)) {
+        if (activity$weekday[i] %in% weekday) {
+                activity$weekday[i]<-"weekday"
+        } 
+        if(activity$weekday[i] %in% weekend)
+                {activity$weekday[i]<-"weekend"}
+}
+activity_4<-group_by(activity,interval,weekday)
+activity_group_4<-summarise(activity_4, average=mean(steps))
+activity_group_4$interval<-as.character(activity_group_4$interval)
+activity_group_4$interval<-as.numeric(activity_group_4$interval)
+library(ggplot2)
+ggplot(activity_group_4,aes(interval,average))+geom_line()+facet_grid(.~weekday)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
